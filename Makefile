@@ -26,10 +26,13 @@ CUDA_INCLUDEPATH=/usr/local/cuda-5.0/include
 #CUDA_INCLUDEPATH=/usr/local/cuda/include
 #CUDA_LIBPATH=/usr/local/cuda/lib
 
-NVCC_OPTS=-O3 -arch=sm_21 -Xcompiler -Wall -Xcompiler -Wextra
-LINK_OPTS=-O3 -arch=sm_21
+#NVCC_OPTS=-O3 -arch=sm_21 -Xcompiler -Wall -Xcompiler -Wextra
+#LINK_OPTS=-O3 -arch=sm_21
+#GCC_OPTS=-O3 -march=native -Wall -Wextra
 
-GCC_OPTS=-O3 -march=native -Wall -Wextra
+NVCC_OPTS=-arch=sm_21 -Xcompiler -Wall -Xcompiler -Wextra -g -G
+LINK_OPTS=-arch=sm_21 -g -G
+GCC_OPTS=-Wall -Wextra -g
 
 pyramids: main.o PyramidMaker.o ImagePyramid.o PyramidKernels.o Makefile
 	$(NVCC) -o pyramids main.o PyramidMaker.o ImagePyramid.o PyramidKernels.o -L $(OPENCV_LIBPATH) $(OPENCV_LIBS) $(LINK_OPTS)
