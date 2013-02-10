@@ -49,29 +49,7 @@ void MakePyramids(const std::string& inputFilename,
   }
 
   // Pyramid work
-  {
-    const int nLevels = 9;
-    ImagePyramid gPyramid(nLevels, dim);
-    ImagePyramid lPyramid(nLevels-1, dim);
-
-    // Construct image pyramid
-    ConstructGaussianPyramid(d_initialImage, gPyramid);
-    ConstructLaplacianPyramid(gPyramid, lPyramid);
-
-    // Filter Laplacian coefficients
-    float* d_fwork;
-    checkCudaErrors(cudaMalloc(&d_fwork, origSize*sizeof(float)));
-    for (int level=0; level<lPyramid.NLevels(); ++level) {
-      FilterThisLLevel(lPyramid.GetLevel(level), lPyramid.Dim(level),
-          1.0f/32.0f, d_fwork);
-      checkCudaErrors(cudaMemcpy(lPyramid.GetLevel(level), d_fwork,
-          lPyramid.Size(level)*sizeof(float), cudaMemcpyDeviceToDevice));
-    }
-    cudaFree(d_fwork);
-
-    // Collapse pyramid
-    CollapseLaplacianPyramid(lPyramid, gPyramid, d_finalImage);
-  }
+  GlobalLaplacianCompression(d_initialImage, dim, d_finalImage);
 
   // Postprocess
   ShiftAndStretch(d_finalImage, dim, 1.75f, 0.2f);
@@ -81,6 +59,31 @@ void MakePyramids(const std::string& inputFilename,
 
   cudaFree(d_finalImage);
   cudaFree(d_initialImage);
+}
+
+void GlobalLaplacianCompression(const float* const d_in, const uint2 dim,
+                                float* const d_out) {
+  const int nLevels = 9;
+  ImagePyramid gPyramid(nLevels, dim);
+  ImagePyramid lPyramid(nLevels-1, dim);
+
+  // Construct image pyramid
+  ConstructGaussianPyramid(d_in, gPyramid);
+  ConstructLaplacianPyramid(gPyramid, lPyramid);
+
+  // Filter Laplacian coefficients
+  float* d_fwork;
+  checkCudaErrors(cudaMalloc(&d_fwork, lPyramid.Size(0)*sizeof(float)));
+  for (int level=0; level<lPyramid.NLevels(); ++level) {
+    FilterThisLLevel(lPyramid.GetLevel(level), lPyramid.Dim(level),
+        1.0f/32.0f, d_fwork);
+    checkCudaErrors(cudaMemcpy(lPyramid.GetLevel(level), d_fwork,
+        lPyramid.Size(level)*sizeof(float), cudaMemcpyDeviceToDevice));
+  }
+  cudaFree(d_fwork);
+
+  // Collapse pyramid
+  CollapseLaplacianPyramid(lPyramid, gPyramid, d_out);
 }
 
 void ConstructGaussianPyramid(const float* const d_image,

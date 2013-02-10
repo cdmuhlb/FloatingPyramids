@@ -9,6 +9,8 @@ class ImagePyramid;
 void MakePyramids(const std::string& inputFilename,
                   const std::string& outputPrefix);
 
+void GlobalLaplacianCompression(const float* d_in, uint2 dim, float* d_out);
+
 void ConstructGaussianPyramid(const float* d_image, ImagePyramid& gPyramid);
 
 void ConstructLaplacianPyramid(const ImagePyramid& gPyramid,
