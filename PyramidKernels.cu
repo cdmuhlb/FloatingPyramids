@@ -172,9 +172,9 @@ void apply_fast_ll_filter(const float* const gThis,
   if (gammaNum >= nGammas - 1) {
     lThis[idx] = lsByGamma[nGammas-1][idx];
   } else {
-    const float d1 = (g0 - gammaNum/(nGammas - 1.0f)) * (nGammas - 1.0f);
-    lThis[idx] = lsByGamma[gammaNum][idx]*(1.0f - d1) +
-                 lsByGamma[gammaNum+1][idx]*d1;
+    const float a = (g0 - gammaNum/(nGammas - 1.0f)) * (nGammas - 1.0f);
+    lThis[idx] = lsByGamma[gammaNum][idx]*(1.0f - a) +
+                 lsByGamma[gammaNum+1][idx]*a;
   }
 }
 
@@ -194,7 +194,7 @@ void remap(const float* const in,
   const float v = in[idx];
   out[idx] = g0 + copysignf(
       (v < sigma) ? (sigma*powf(fabsf(v - g0)/sigma, alpha)) :
-                    ((beta*fabsf(v - g0) - sigma) + sigma) ,
+                    (beta*(fabsf(v - g0) - sigma) + sigma) ,
       v - g0);
 }
 
