@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
+#include <vector>
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <opencv2/core/core.hpp>
@@ -51,7 +52,8 @@ void MakePyramids(const std::string& inputFilename,
 
   // Pyramid work
   //GlobalLaplacianCompression(d_initialImage, dim, d_finalImage);
-  LocalLaplacianCompression(d_initialImage, dim, d_finalImage);
+  //LocalLaplacianCompression(d_initialImage, dim, d_finalImage);
+  FastLocalLaplacianCompression(d_initialImage, dim, d_finalImage);
 
   // Postprocess
   //ShiftAndStretch(d_finalImage, dim, 1.75f, 0.2f);
@@ -116,6 +118,50 @@ void LocalLaplacianCompression(const float* const d_in, const uint2 dim,
       if (idx%1000 == 0) std::cout << "idx: " << idx << std::endl;
     }
   }
+
+  // Collapse pyramid
+  CollapseLaplacianPyramid(lPyramid, gPyramid, d_out);
+}
+
+
+void FastLocalLaplacianCompression(const float* const d_in, const uint2 dim,
+                                   float* const d_out) {
+  const int nLevels = 9;
+  ImagePyramid gPyramid(nLevels, dim);
+  ImagePyramid lPyramid(nLevels-1, dim);
+
+  ConstructGaussianPyramid(d_in, gPyramid);
+
+  const int nGammas = 64;
+  ImagePyramid** lps = new ImagePyramid*[nGammas];
+  ImagePyramid gTmpP(nLevels, dim);
+  for (int i=0; i<nGammas; ++i) {
+    lps[i] = new ImagePyramid(nLevels-1, dim);
+    const float gamma = i / (nGammas - 1.0f);
+    RemapImage(d_in, dim, gamma, 0.5, 0.7f, 0.4f, gTmpP.GetLevel(0)); 
+    ConstructPartialGaussianPyramid(gTmpP, nLevels-1);
+    ConstructLaplacianPyramid(gTmpP, *lps[i]);
+  }
+
+  float** lpsByGamma = new float*[nGammas];
+  float** d_lpsByGamma;
+  checkCudaErrors(cudaMalloc(&d_lpsByGamma, nGammas*sizeof(float*)));
+  for (int level=0; level<nLevels-1; ++level) {
+    for (int i=0; i<nGammas; ++i) {
+      lpsByGamma[i] = lps[i]->GetLevel(level);
+    }
+    checkCudaErrors(cudaMemcpy(d_lpsByGamma, lpsByGamma,
+        nGammas*sizeof(float*), cudaMemcpyHostToDevice));
+    ApplyLLFilter(gPyramid.GetLevel(level), gPyramid.Dim(level), d_lpsByGamma,
+                  nGammas, lPyramid.GetLevel(level));
+  }
+  cudaFree(d_lpsByGamma);
+  delete[] lpsByGamma;
+
+  for (int i=0; i<nGammas; ++i) {
+    delete lps[i];
+  }
+  delete[] lps;
 
   // Collapse pyramid
   CollapseLaplacianPyramid(lPyramid, gPyramid, d_out);

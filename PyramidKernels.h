@@ -16,6 +16,9 @@ void ReconstructThisGLevel(const float* gNext, const float* lThis, uint2 dim,
 void FilterThisLLevel(const float* lThisIn, uint2 dim, float ymax,
                       float* lThisOut);
 
+void ApplyLLFilter(const float* gThis, uint2 dim, float** lsByGamma,
+                   int nGammas, float* lThis);
+
 void ShiftAndStretch(float* inout, uint2 dim, float stretch, float shift);
 
 void RemapImage(const float* in, uint2 dim, float g0, float alpha, float beta,

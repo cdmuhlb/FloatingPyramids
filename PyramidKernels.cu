@@ -156,6 +156,29 @@ void apply_filter(const float* const in,
 }
 
 __global__
+void apply_fast_ll_filter(const float* const gThis,
+                          float* const lThis,
+                          const uint2 dim,
+                          float** lsByGamma,
+                          const int nGammas) {
+  const unsigned int x = blockIdx.x*blockDim.x + threadIdx.x;
+  const unsigned int y = blockIdx.y*blockDim.y + threadIdx.y;
+  if ((x >= dim.x) || (y >= dim.y)) return;
+  const unsigned int idx = y*dim.x + x;
+
+  const float g0 = gThis[idx];
+  int gammaNum = g0 * (nGammas - 1);
+  if (gammaNum < 0) gammaNum = 0;
+  if (gammaNum >= nGammas - 1) {
+    lThis[idx] = lsByGamma[nGammas-1][idx];
+  } else {
+    const float d1 = (g0 - gammaNum/(nGammas - 1.0f)) * (nGammas + 1.0f);
+    lThis[idx] = lsByGamma[gammaNum][idx]*(1.0f - d1) +
+                 lsByGamma[gammaNum+1][idx]*d1;
+  }
+}
+
+__global__
 void remap(const float* const in,
            float* const out,
            const uint2 dim,
@@ -267,6 +290,18 @@ void FilterThisLLevel(const float* const lThisIn,
   const unsigned int gridy = (dim.y - 1)/blockSize.y + 1;
   const dim3 gridSize(gridx, gridy);
   apply_filter<<<gridSize, blockSize>>>(lThisIn, lThisOut, dim, ymax);
+}
+
+void ApplyLLFilter(const float* const gThis,
+                   const uint2 dim,
+                   float** lsByGamma,
+                   const int nGammas,
+                   float* const lThis) {
+  const dim3 blockSize(16, 16);
+  const unsigned int gridx = (dim.x - 1)/blockSize.x + 1;
+  const unsigned int gridy = (dim.y - 1)/blockSize.y + 1;
+  const dim3 gridSize(gridx, gridy);
+  apply_fast_ll_filter<<<gridSize, blockSize>>>(gThis, lThis, dim, lsByGamma, nGammas);
 }
 
 void ShiftAndStretch(float* const inout,

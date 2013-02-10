@@ -11,6 +11,7 @@ void MakePyramids(const std::string& inputFilename,
 
 void GlobalLaplacianCompression(const float* d_in, uint2 dim, float* d_out);
 void LocalLaplacianCompression(const float* d_in, uint2 dim, float* d_out);
+void FastLocalLaplacianCompression(const float* d_in, uint2 dim, float* d_out);
 
 void ConstructGaussianPyramid(const float* d_image, ImagePyramid& gPyramid);
 
