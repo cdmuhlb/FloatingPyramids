@@ -172,7 +172,7 @@ void apply_fast_ll_filter(const float* const gThis,
   if (gammaNum >= nGammas - 1) {
     lThis[idx] = lsByGamma[nGammas-1][idx];
   } else {
-    const float d1 = (g0 - gammaNum/(nGammas - 1.0f)) * (nGammas + 1.0f);
+    const float d1 = (g0 - gammaNum/(nGammas - 1.0f)) * (nGammas - 1.0f);
     lThis[idx] = lsByGamma[gammaNum][idx]*(1.0f - d1) +
                  lsByGamma[gammaNum+1][idx]*d1;
   }
