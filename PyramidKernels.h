@@ -18,6 +18,9 @@ void FilterThisLLevel(const float* lThisIn, uint2 dim, float ymax,
 
 void ShiftAndStretch(float* inout, uint2 dim, float stretch, float shift);
 
+void RemapImage(const float* in, uint2 dim, float g0, float alpha, float beta,
+                float sigma, float* out);
+
 void ClampToBytes(const float* in, uint2 dim, unsigned char* out);
 
 #endif  // PYRAMIDKERNELS_H_

@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <iostream>
 #include <sstream>
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -49,13 +50,15 @@ void MakePyramids(const std::string& inputFilename,
   }
 
   // Pyramid work
-  GlobalLaplacianCompression(d_initialImage, dim, d_finalImage);
+  //GlobalLaplacianCompression(d_initialImage, dim, d_finalImage);
+  LocalLaplacianCompression(d_initialImage, dim, d_finalImage);
 
   // Postprocess
-  ShiftAndStretch(d_finalImage, dim, 1.75f, 0.2f);
+  //ShiftAndStretch(d_finalImage, dim, 1.75f, 0.2f);
 
   // Write to disk
   WriteDeviceImage(d_finalImage, dim, outputPrefix + "_final.png");
+  WriteDeviceImage(d_initialImage, dim, outputPrefix + "_initial.png");
 
   cudaFree(d_finalImage);
   cudaFree(d_initialImage);
@@ -86,6 +89,38 @@ void GlobalLaplacianCompression(const float* const d_in, const uint2 dim,
   CollapseLaplacianPyramid(lPyramid, gPyramid, d_out);
 }
 
+void LocalLaplacianCompression(const float* const d_in, const uint2 dim,
+                               float* const d_out) {
+  const int nLevels = 8;
+  ImagePyramid gPyramid(nLevels, dim);
+  ImagePyramid lPyramid(nLevels-1, dim);
+
+  // Construct image pyramid
+  ConstructGaussianPyramid(d_in, gPyramid);
+
+  ImagePyramid gTmpP(nLevels, dim);
+  ImagePyramid lTmpP(nLevels-1, dim);
+
+  for (int level=0; level<lPyramid.NLevels(); ++level) {
+    for (int idx=0; idx<gPyramid.Size(level); ++idx) {
+      float g0;
+      checkCudaErrors(cudaMemcpy(&g0, &gPyramid.GetLevel(level)[idx],
+          sizeof(float), cudaMemcpyDeviceToHost));
+      RemapImage(d_in, dim, g0, 0.25, 1.0f, 0.25f, gTmpP.GetLevel(0)); 
+
+      ConstructPartialGaussianPyramid(gTmpP, level+1);
+      ConstructPartialLaplacianPyramid(gTmpP, level, lTmpP);
+      checkCudaErrors(cudaMemcpy(&lPyramid.GetLevel(level)[idx],
+          &lTmpP.GetLevel(level)[idx], sizeof(float),
+          cudaMemcpyDeviceToDevice));
+      if (idx%1000 == 0) std::cout << "idx: " << idx << std::endl;
+    }
+  }
+
+  // Collapse pyramid
+  CollapseLaplacianPyramid(lPyramid, gPyramid, d_out);
+}
+
 void ConstructGaussianPyramid(const float* const d_image,
                               ImagePyramid& gPyramid) {
   checkCudaErrors(cudaMemcpy(gPyramid.GetLevel(0), d_image,
@@ -100,6 +135,27 @@ void ConstructLaplacianPyramid(const ImagePyramid& gPyramid,
                                ImagePyramid& lPyramid) {
   assert(gPyramid.NLevels() == lPyramid.NLevels()+1);
   for (int level=0; level<gPyramid.NLevels()-1; ++level) {
+    //assert(gPyramid.Dim(level) == lPyramid.Dim(level));
+    ComputeThisLLevel(gPyramid.GetLevel(level), gPyramid.GetLevel(level+1),
+        gPyramid.Dim(level), lPyramid.GetLevel(level));
+  }
+}
+
+void ConstructPartialGaussianPyramid(ImagePyramid& gPyramid,
+                                     const int maxLevel) {
+  assert(maxLevel < gPyramid.NLevels());
+  for (int level=0; level<maxLevel; ++level) {
+    ComputeNextGLevel(gPyramid.GetLevel(level), gPyramid.Dim(level),
+        gPyramid.GetLevel(level+1));
+  }
+}
+
+void ConstructPartialLaplacianPyramid(const ImagePyramid& gPyramid, 
+                                      const int maxLevel,
+                                      ImagePyramid& lPyramid) {
+  assert(maxLevel < lPyramid.NLevels());
+  assert(gPyramid.NLevels() == lPyramid.NLevels()+1);
+  for (int level=0; level<=maxLevel; ++level) {
     //assert(gPyramid.Dim(level) == lPyramid.Dim(level));
     ComputeThisLLevel(gPyramid.GetLevel(level), gPyramid.GetLevel(level+1),
         gPyramid.Dim(level), lPyramid.GetLevel(level));

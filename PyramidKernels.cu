@@ -156,6 +156,26 @@ void apply_filter(const float* const in,
 }
 
 __global__
+void remap(const float* const in,
+           float* const out,
+           const uint2 dim,
+           const float g0,
+           const float alpha,
+           const float beta,
+           const float sigma) {
+  const unsigned int x = blockIdx.x*blockDim.x + threadIdx.x;
+  const unsigned int y = blockIdx.y*blockDim.y + threadIdx.y;
+  if ((x >= dim.x) || (y >= dim.y)) return;
+  const unsigned int idx = y*dim.x + x;
+
+  const float v = in[idx];
+  out[idx] = g0 + copysignf(
+      (v < sigma) ? (sigma*powf(fabsf(v - g0)/sigma, alpha)) :
+                    ((beta*fabsf(v - g0) - sigma) + sigma) ,
+      v - g0);
+}
+
+__global__
 void shift_and_stretch(float* const inout,
                        const uint2 dim,
                        const float stretch,
@@ -258,6 +278,20 @@ void ShiftAndStretch(float* const inout,
   const unsigned int gridy = (dim.y - 1)/blockSize.y + 1;
   const dim3 gridSize(gridx, gridy);
   shift_and_stretch<<<gridSize, blockSize>>>(inout, dim, stretch, shift);
+}
+
+void RemapImage(const float* const in,
+                const uint2 dim,
+                const float g0,
+                const float alpha,
+                const float beta, 
+                const float sigma, 
+                float* const out) {
+  const dim3 blockSize(16, 16);
+  const unsigned int gridx = (dim.x - 1)/blockSize.x + 1;
+  const unsigned int gridy = (dim.y - 1)/blockSize.y + 1;
+  const dim3 gridSize(gridx, gridy);
+  remap<<<gridSize, blockSize>>>(in, out, dim, g0, alpha, beta, sigma);
 }
 
 void ClampToBytes(const float* const in,
