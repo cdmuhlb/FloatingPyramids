@@ -2,7 +2,6 @@
 #define IMAGEPYRAMID_H_
 
 #include <cassert>
-#include <cstddef>
 #include <vector_types.h>
 
 class ImagePyramid {
@@ -11,21 +10,31 @@ class ImagePyramid {
   ~ImagePyramid();
 
   int NLevels() const { return nLevels_; }
-  uint2 Dim() const { return dim_; }
-  float* GLevel(int i) {
-    assert((i >= 0) && (i < nLevels_));
-    return d_gLevels_[i];
+
+  uint2 Dim(int level) const {
+    assert((level >= 0) && (level < nLevels_));
+    return dims_[level];
   }
-  float* LLevel(int i) {
-    assert((i >= 0) && (i < nLevels_-1));
-    return d_lLevels_[i];
+
+  int Size(int level) const {
+    assert((level >= 0) && (level < nLevels_));
+    return dims_[level].x * dims_[level].y;
+  }
+
+  float* GetLevel(int level) {
+    assert((level >= 0) && (level < nLevels_));
+    return d_levels_[level];
+  }
+
+  const float* GetLevel(int level) const {
+    assert((level >= 0) && (level < nLevels_));
+    return d_levels_[level];
   }
 
  private:
   const int nLevels_;
-  const uint2 dim_;
-  float** d_gLevels_;
-  float** d_lLevels_;
+  uint2* dims_;
+  float** d_levels_;
 };
 
 #endif  // IMAGEPYRAMID_H_

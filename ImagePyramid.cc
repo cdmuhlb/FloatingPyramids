@@ -4,28 +4,23 @@
 #include "utils.h"
 
 ImagePyramid::ImagePyramid(const int nLevels, const uint2 dim)
-    : nLevels_(nLevels), dim_(dim) {
-  d_gLevels_ = new float*[nLevels_];
-  d_lLevels_ = new float*[nLevels_-1];
-  int nxi = dim_.x;
-  int nyi = dim_.y;
-  for (int i=0; i<nLevels_-1; ++i) {
-    checkCudaErrors(cudaMalloc(&d_gLevels_[i], nxi*nyi*sizeof(float)));
-    checkCudaErrors(cudaMalloc(&d_lLevels_[i], nxi*nyi*sizeof(float)));
-    nxi /= 2;
-    nyi /= 2;
+    : nLevels_(nLevels) {
+  dims_ = new uint2[nLevels_];
+  d_levels_ = new float*[nLevels_];
+  uint2 dimi = dim;
+  for (int i=0; i<nLevels_; ++i) {
+    checkCudaErrors(cudaMalloc(&d_levels_[i], dimi.x*dimi.y*sizeof(float)));
+    dims_[i] = dimi;
+    dimi.x /= 2;
+    dimi.y /= 2;
   }
-  checkCudaErrors(cudaMalloc(&d_gLevels_[nLevels_-1],
-      nxi*nyi*sizeof(float)));
 }
 
 ImagePyramid::~ImagePyramid() {
-  for (int i=0; i<nLevels_-1; ++i) {
-    cudaFree(d_lLevels_[i]);
-    cudaFree(d_gLevels_[i]);
+  for (int i=0; i<nLevels_; ++i) {
+    cudaFree(d_levels_[i]);
   }
-  cudaFree(d_gLevels_[nLevels_-1]);
-  delete[] d_lLevels_;
-  delete[] d_gLevels_;
+  delete[] d_levels_;
+  delete[] dims_;
 }
 
