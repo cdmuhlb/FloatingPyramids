@@ -2,6 +2,7 @@
 #define PYRAMIDMAKER_H_
 
 #include <string>
+#include <vector_types.h>
 
 class ImagePyramid;
 
@@ -15,6 +16,9 @@ void ConstructLaplacianPyramid(const ImagePyramid& gPyramid,
 
 void CollapseLaplacianPyramid(const ImagePyramid& lPyramid,
                               ImagePyramid& gPyramid, float* d_image);
+
+void WriteDeviceImage(const float* d_image, uint2 dim,
+                      const std::string& filename);
 
 #endif  // PYRAMIDMAKER_H_
 

@@ -5,7 +5,6 @@
 #include <sstream>
 #include <cuda.h>
 #include <cuda_runtime.h>
-#include <vector_types.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>
@@ -77,20 +76,8 @@ void MakePyramids(const std::string& inputFilename,
   // Postprocess
   ShiftAndStretch(d_finalImage, dim, 1.75f, 0.2f);
 
-  /* Write to disk */
-  {
-    unsigned char* d_imageBytes;
-    checkCudaErrors(cudaMalloc(&d_imageBytes, origSize*sizeof(unsigned char)));
-    ClampToBytes(d_finalImage, dim, d_imageBytes);
-    cv::Mat outImage;
-    outImage.create(rows, cols, CV_8UC1);
-    checkCudaErrors(cudaMemcpy(outImage.ptr<unsigned char>(0), d_imageBytes,
-        origSize*sizeof(unsigned char), cudaMemcpyDeviceToHost));
-    cudaFree(d_imageBytes);
-    std::ostringstream outName;
-    outName << outputPrefix << "_G0prime.png";
-    cv::imwrite(outName.str().c_str(), outImage);
-  }
+  // Write to disk
+  WriteDeviceImage(d_finalImage, dim, outputPrefix + "_final.png");
 
   cudaFree(d_finalImage);
   cudaFree(d_initialImage);
@@ -126,5 +113,20 @@ void CollapseLaplacianPyramid(const ImagePyramid& lPyramid,
   }
   checkCudaErrors(cudaMemcpy(d_image, gPyramid.GetLevel(0),
       gPyramid.Size(0)*sizeof(float), cudaMemcpyDeviceToDevice));
+}
+
+void WriteDeviceImage(const float* d_image, const uint2 dim,
+                      const std::string& filename) {
+  unsigned int size = dim.x * dim.y;
+  unsigned char* d_imageBytes;
+  checkCudaErrors(cudaMalloc(&d_imageBytes, size*sizeof(unsigned char)));
+  ClampToBytes(d_image, dim, d_imageBytes);
+
+  cv::Mat outImage;
+  outImage.create(dim.y, dim.x, CV_8UC1);
+  checkCudaErrors(cudaMemcpy(outImage.ptr<unsigned char>(0), d_imageBytes,
+      size*sizeof(unsigned char), cudaMemcpyDeviceToHost));
+  cudaFree(d_imageBytes);
+  cv::imwrite(filename.c_str(), outImage);
 }
 
