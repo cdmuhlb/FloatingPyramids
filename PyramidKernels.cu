@@ -22,6 +22,63 @@ void color_to_grey(const uchar4* const inImage,
 }
 
 __global__
+void scale_colors(uchar4* const inout,
+                  const float* const newI,
+                  const uint2 dim) {
+  // Get global coordinates
+  const unsigned int x = blockIdx.x*blockDim.x + threadIdx.x;
+  const unsigned int y = blockIdx.y*blockDim.y + threadIdx.y;
+  if ((x >= dim.x) || (y >= dim.y)) return;
+  const unsigned int idx = y*dim.x + x;
+  uchar4 rgba = inout[idx];
+
+  /*
+  float channelSum = (0.299f*rgba.x + 0.587f*rgba.y + 0.114f*rgba.z) / 255.0f;
+  //const float delta = (newI[idx] - channelSum) * 255.0f;
+  const float ratio = (newI[idx] + 1.0f) / (channelSum + 1.0f);
+
+  //float newR = rgba.x + 0.299f*delta;
+  //float newR = rgba.x * ratio;
+  float newR = (rgba.x + 255.0f) * ratio - 255.0f;
+  if (newR < 0.0f) newR = 0.0f;
+  if (newR > 255.0f) newR = 255.0f;
+  rgba.x = newR;
+
+  //float newG = rgba.y + 0.587f*delta;
+  //float newG = rgba.y * ratio;
+  float newG = (rgba.y + 255.0f) * ratio - 255.0f;
+  if (newG < 0.0f) newG = 0.0f;
+  if (newG > 255.0f) newG = 255.0f;
+  rgba.y = newG;
+
+  //float newB = rgba.z + 0.114f*delta;
+  //float newB = rgba.z * ratio;
+  float newB = (rgba.z + 255.0f) * ratio - 255.0f;
+  if (newB < 0.0f) newB = 0.0f;
+  if (newB > 255.0f) newB = 255.0f;
+  rgba.z = newB;
+  */
+
+  //const float oldY = (0.299f*rgba.x + 0.587f*rgba.y + 0.114f*rgba.z) / 255.0f;
+  const float newY = newI[idx];
+  const float cb = 0.5f + (-0.168736f*rgba.x - 0.331264f*rgba.y + 0.5f*rgba.z) /
+                          255.0f;
+  const float cr = 0.5f + (0.5f*rgba.x - 0.418688f*rgba.y - 0.081312f*rgba.z) /
+                          255.0f;
+
+  rgba.x = (newY + 1.402f*(cr - 0.5f))*255.0f;
+  rgba.y = (newY - 0.34414*(cb - 0.5f) - 0.71414f*(cr - 0.5f))*255.0f;
+  rgba.z = (newY + 1.772*(cb - 0.5f))*255.0f;
+
+  // Swap colors
+  unsigned char swp = rgba.x;
+  rgba.x = rgba.z;
+  rgba.z = swp;
+
+  inout[idx] = rgba;
+}
+
+__global__
 void downsample(const float* const inImage,
                 float* const outImage,
                 const uint2 dim) {
@@ -256,6 +313,16 @@ void ConvertToGreyscale(const uchar4* const in,
   const unsigned int gridy = (dim.y - 1)/blockSize.y + 1;
   const dim3 gridSize(gridx, gridy);
   color_to_grey<<<gridSize, blockSize>>>(in, out, dim);
+}
+
+void ScaleColors(uchar4* const inout,
+                 const float* const newI,
+                 const uint2 dim) {
+  const dim3 blockSize(16, 16);
+  const unsigned int gridx = (dim.x - 1)/blockSize.x + 1;
+  const unsigned int gridy = (dim.y - 1)/blockSize.y + 1;
+  const dim3 gridSize(gridx, gridy);
+  scale_colors<<<gridSize, blockSize>>>(inout, newI, dim);
 }
 
 void ComputeNextGLevel(const float* const gThis,

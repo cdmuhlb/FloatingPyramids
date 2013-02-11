@@ -57,6 +57,18 @@ void MakePyramids(const std::string& inputFilename,
 
   // Postprocess
   //ShiftAndStretch(d_finalImage, dim, 1.75f, 0.2f);
+  {
+    uchar4* d_colorImage;
+    checkCudaErrors(cudaMalloc(&d_colorImage, origSize*sizeof(uchar4)));
+    checkCudaErrors(cudaMemcpy(d_colorImage,
+        (uchar4*)origColor.ptr<unsigned char>(0), origSize*sizeof(uchar4),
+        cudaMemcpyHostToDevice));
+    ScaleColors(d_colorImage, d_finalImage, dim);
+    checkCudaErrors(cudaMemcpy((uchar4*)origColor.ptr<unsigned char>(0),
+        d_colorImage, origSize*sizeof(uchar4), cudaMemcpyDeviceToHost));
+    cudaFree(d_colorImage);
+    cv::imwrite("colorout.png", origColor);
+  }
 
   // Write to disk
   WriteDeviceImage(d_finalImage, dim, outputPrefix + "_final.png");

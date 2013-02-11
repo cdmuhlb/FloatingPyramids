@@ -5,6 +5,8 @@
 
 void ConvertToGreyscale(const uchar4* in, uint2 dim, float* out);
 
+void ScaleColors(uchar4* inout, const float* newI, uint2 dim);
+
 void ComputeNextGLevel(const float* gThis, uint2 dim, float* gNext);
 
 void ComputeThisLLevel(const float* gThis, const float* gNext, uint2 dim,
