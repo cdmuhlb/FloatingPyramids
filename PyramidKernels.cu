@@ -192,10 +192,17 @@ void remap(const float* const in,
   const unsigned int idx = y*dim.x + x;
 
   const float v = in[idx];
-  out[idx] = g0 + copysignf(
-      (v < sigma) ? (sigma*powf(fabsf(v - g0)/sigma, alpha)) :
-                    (beta*(fabsf(v - g0) - sigma) + sigma) ,
-      v - g0);
+  const float delta = fabsf(v - g0)/sigma;
+  if (delta < 1.0f) {
+    //const float t = 0.0f;
+    //const float tau = (delta < t) ? 0.0f :
+    //    ((delta > 2.0f*t) ? 1.0f : ((delta - t)/t));
+    const float tau = 1.0f;
+    const float fd = tau*powf(delta, alpha) + (1.0f - tau)*delta;
+    out[idx] = g0 + copysignf(sigma*fd, v - g0);
+  } else {
+    out[idx] = g0 + copysignf(beta*(fabsf(v - g0) - sigma) + sigma, v - g0);
+  }
 }
 
 __global__
@@ -209,6 +216,20 @@ void shift_and_stretch(float* const inout,
   const unsigned int idx = y*dim.x + x;
 
   inout[idx] = stretch*(inout[idx] - 0.5f) + 0.5f + shift;
+}
+
+__global__
+void weighted_average(float* const a,
+                      const float* const b,
+                      const uint2 dim,
+                      const float wa,
+                      const float wb) {
+  const unsigned int x = blockIdx.x*blockDim.x + threadIdx.x;
+  const unsigned int y = blockIdx.y*blockDim.y + threadIdx.y;
+  if ((x >= dim.x) || (y >= dim.y)) return;
+  const unsigned int idx = y*dim.x + x;
+
+  a[idx] = wa*a[idx] + wb*b[idx];
 }
 
 __global__
@@ -313,6 +334,18 @@ void ShiftAndStretch(float* const inout,
   const unsigned int gridy = (dim.y - 1)/blockSize.y + 1;
   const dim3 gridSize(gridx, gridy);
   shift_and_stretch<<<gridSize, blockSize>>>(inout, dim, stretch, shift);
+}
+
+void WeightedAverage(float* const a,
+                     const float* const b,
+                     const uint2 dim,
+                     const float wa,
+                     const float wb) {
+  const dim3 blockSize(16, 16);
+  const unsigned int gridx = (dim.x - 1)/blockSize.x + 1;
+  const unsigned int gridy = (dim.y - 1)/blockSize.y + 1;
+  const dim3 gridSize(gridx, gridy);
+  weighted_average<<<gridSize, blockSize>>>(a, b, dim, wa, wb);
 }
 
 void RemapImage(const float* const in,

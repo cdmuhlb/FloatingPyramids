@@ -21,6 +21,8 @@ void ApplyLLFilter(const float* gThis, uint2 dim, float** lsByGamma,
 
 void ShiftAndStretch(float* inout, uint2 dim, float stretch, float shift);
 
+void WeightedAverage(float* a, const float* b, uint2 dim, float wa, float wb);
+
 void RemapImage(const float* in, uint2 dim, float g0, float alpha, float beta,
                 float sigma, float* out);
 

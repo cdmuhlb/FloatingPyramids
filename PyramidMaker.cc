@@ -60,7 +60,7 @@ void MakePyramids(const std::string& inputFilename,
 
   // Write to disk
   WriteDeviceImage(d_finalImage, dim, outputPrefix + "_final.png");
-  WriteDeviceImage(d_initialImage, dim, outputPrefix + "_initial.png");
+  //WriteDeviceImage(d_initialImage, dim, outputPrefix + "_initial.png");
 
   cudaFree(d_finalImage);
   cudaFree(d_initialImage);
@@ -130,19 +130,18 @@ void FastLocalLaplacianCompression(const float* const d_in, const uint2 dim,
   ImagePyramid gPyramid(nLevels, dim);
   ImagePyramid lPyramid(nLevels-1, dim);
 
-  ConstructGaussianPyramid(d_in, gPyramid);
-
-  const int nGammas = 64;
+  const int nGammas = 24;
   ImagePyramid** lps = new ImagePyramid*[nGammas];
   ImagePyramid gTmpP(nLevels, dim);
   for (int i=0; i<nGammas; ++i) {
     lps[i] = new ImagePyramid(nLevels-1, dim);
     const float gamma = i / (nGammas - 1.0f);
-    RemapImage(d_in, dim, gamma, 0.5, 0.7f, 0.4f, gTmpP.GetLevel(0)); 
+    RemapImage(d_in, dim, gamma, 1.0f, 0.25, 0.04, gTmpP.GetLevel(0));
     ConstructPartialGaussianPyramid(gTmpP, nLevels-1);
     ConstructLaplacianPyramid(gTmpP, *lps[i]);
   }
 
+  ConstructGaussianPyramid(d_in, gPyramid);
   float** lpsByGamma = new float*[nGammas];
   float** d_lpsByGamma;
   checkCudaErrors(cudaMalloc(&d_lpsByGamma, nGammas*sizeof(float*)));
@@ -162,6 +161,18 @@ void FastLocalLaplacianCompression(const float* const d_in, const uint2 dim,
     delete lps[i];
   }
   delete[] lps;
+
+  // Mix pyramids
+  /*ImagePyramid origLP(nLevels-1, dim);
+  ConstructLaplacianPyramid(gPyramid, origLP);
+  for (int level=0; level<lPyramid.NLevels(); ++level) {
+    const float wb = level / (nLevels - 1.0f);
+    const float wa = (1.0f - wa);
+    WeightedAverage(lPyramid.GetLevel(level), origLP.GetLevel(level),
+        lPyramid.Dim(level), wa, wb);
+  }*/
+  //WeightedAverage(lPyramid.GetLevel(0), origLP.GetLevel(0),
+  //    lPyramid.Dim(0), 0.0f, 1.0f);
 
   // Collapse pyramid
   CollapseLaplacianPyramid(lPyramid, gPyramid, d_out);
