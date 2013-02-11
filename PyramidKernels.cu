@@ -194,10 +194,10 @@ void remap(const float* const in,
   const float v = in[idx];
   const float delta = fabsf(v - g0)/sigma;
   if (delta < 1.0f) {
-    //const float t = 0.0f;
-    //const float tau = (delta < t) ? 0.0f :
-    //    ((delta > 2.0f*t) ? 1.0f : ((delta - t)/t));
-    const float tau = 1.0f;
+    const float t = 0.25f;
+    const float tau = (delta < t) ? 0.0f :
+        ((delta > 2.0f*t) ? 1.0f : ((delta - t)/t));
+    //const float tau = 1.0f;
     const float fd = tau*powf(delta, alpha) + (1.0f - tau)*delta;
     out[idx] = g0 + copysignf(sigma*fd, v - g0);
   } else {

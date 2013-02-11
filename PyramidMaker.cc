@@ -130,13 +130,13 @@ void FastLocalLaplacianCompression(const float* const d_in, const uint2 dim,
   ImagePyramid gPyramid(nLevels, dim);
   ImagePyramid lPyramid(nLevels-1, dim);
 
-  const int nGammas = 24;
+  const int nGammas = 64;
   ImagePyramid** lps = new ImagePyramid*[nGammas];
   ImagePyramid gTmpP(nLevels, dim);
   for (int i=0; i<nGammas; ++i) {
     lps[i] = new ImagePyramid(nLevels-1, dim);
     const float gamma = i / (nGammas - 1.0f);
-    RemapImage(d_in, dim, gamma, 1.0f, 0.25, 0.04, gTmpP.GetLevel(0));
+    RemapImage(d_in, dim, gamma, 0.5f, 0.25, 0.04, gTmpP.GetLevel(0));
     ConstructPartialGaussianPyramid(gTmpP, nLevels-1);
     ConstructLaplacianPyramid(gTmpP, *lps[i]);
   }
