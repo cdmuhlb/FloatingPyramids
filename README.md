@@ -12,5 +12,6 @@ Processing](http://dspace.mit.edu/handle/1721.1/67030).
 
 Dependencies
 ------------
-FloatingPyramids requires CUDA 5.0 or later, OpenCV, and a Linux-compatible
-build environment.
+FloatingPyramids requires [CUDA 5.0 or
+later](https://developer.nvidia.com/cuda-toolkit), [OpenCV](http://opencv.org/),
+and a Linux-compatible build environment.
