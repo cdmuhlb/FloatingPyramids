@@ -15,3 +15,18 @@ Dependencies
 FloatingPyramids requires [CUDA 5.0 or
 later](https://developer.nvidia.com/cuda-toolkit), [OpenCV](http://opencv.org/),
 and a Linux-compatible build environment.
+
+Installation
+------------
+To compile FloatingPyramids, edit the `Makefile` and adjust the variables for
+your environment (most importantly, choose `CUDA_ARCH` to match the compute
+capability of your GPU).  Then run `make`; the resulting executable will be
+named `pyramids`.
+
+Usage
+-----
+    pyramids <input_image> <output_prefix>
+
+Note that `<input_image>` currently must have dimensions that are powers of 2.
+The monochrome output is written to the file `<output_prefix>_final.png`, and
+an experimental color output is written to `colorout.png`.
