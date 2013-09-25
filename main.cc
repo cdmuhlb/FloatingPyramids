@@ -1,6 +1,5 @@
 #include <cstdio>
 #include <cstdlib>
-#include <iostream>
 #include <string>
 #include "timer.h"
 #include "utils.h"
@@ -14,7 +13,7 @@ int main(int argc, char** argv) {
     input_file  = std::string(argv[1]);
     output_file = std::string(argv[2]);
   } else {
-    std::cerr << "Usage: ./hw input_file output_file" << std::endl;
+    fprintf(stderr, "Usage: pyramids <input_image> <output_prefix>\n");
     return EXIT_FAILURE;
   }
 
