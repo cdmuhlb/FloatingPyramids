@@ -1,3 +1,8 @@
+/*
+ * This file is derived from materials provided by Udacity course CS344:
+ * Introduction to Parallel Programming (https://github.com/udacity/cs344).
+ */
+
 #ifndef GPU_TIMER_H__
 #define GPU_TIMER_H__
 
