@@ -21,7 +21,7 @@ Installation
 To compile FloatingPyramids, edit the `Makefile` and adjust the variables for
 your environment (most importantly, choose `CUDA_ARCH` to match the compute
 capability of your GPU).  Then run `make`; the resulting executable will be
-named `pyramids`.
+named `bin/pyramids`.
 
 Usage
 -----
