@@ -1,23 +1,37 @@
+# User settings
+# =============
+
 # Compute capability of target GPU (passed to '-arch' flag)
-CUDA_ARCH=sm_30
+CUDA_ARCH = sm_30
+
+# Location of the CUDA Toolkit
+CUDA_PATH = /usr/local/cuda
 
 # Compilers and flags
-CXX=g++
-CXXFLAGS=-O3 -march=native -Wall -Wextra
-NVCC=nvcc
-NVCCFLAGS=-O3 -arch=$(CUDA_ARCH)
+CXX = g++
+CXXFLAGS = -O3 -march=native -Wall -Wextra
+NVCC = nvcc
+NVCCFLAGS = -O3 -arch=$(CUDA_ARCH)
 
 # Library paths
-OPENCV_LIBPATH=/usr/lib
-OPENCV_INCLUDEPATH=/usr/include
-CUDA_INCLUDEPATH=/usr/local/cuda/include
+#   Example LIB: -L /usr/lib
+#   Example INCLUDE: -I /usr/include
+OPENCV_LIB =
+OPENCV_INCLUDE =
 
+
+# Internal settings
+# =================
 
 # Includes and libraries
-INCLUDES=-I$(CUDA_INCLUDEPATH) -I$(OPENCV_INCLUDEPATH)
-OPENCV_LIBS=-lopencv_core -lopencv_imgproc -lopencv_highgui
-LIBRARIES=-L$(OPENCV_LIBPATH) $(OPENCV_LIBS)
+CUDA_INCLUDE = -I $(CUDA_PATH)/include
+OPENCV_LIBS = -lopencv_core -lopencv_imgproc -lopencv_highgui
+INCLUDES = $(OPENCV_INCLUDE) $(CUDA_INCLUDE)
+LIBRARIES = $(OPENCV_LIB) $(OPENCV_LIBS)
 
+
+# Targets
+# =======
 
 all: bin/pyramids
 
